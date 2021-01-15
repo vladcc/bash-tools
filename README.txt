@@ -1,2 +1,2 @@
-# cmd-gen
-generate bash commands with positional arguments
+# prep
+generate strings with positional arguments from the command line

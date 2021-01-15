@@ -1,0 +1,5 @@
+2021-01-15
+cmd-gen.sh 0.9 -> prep.sh 0.91
+syntax check regex is now checked for.. well, syntax
+field separator option added
+positional argument 0 is now the whole line

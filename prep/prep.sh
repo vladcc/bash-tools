@@ -4,30 +4,34 @@
 
 set -u
 
-readonly G_SCRIPT_NAME="$0"
-readonly G_SCRIPT_VERSION="0.9"
+readonly G_SCRIPT_NAME="$(basename $0)"
+readonly G_SCRIPT_VERSION="0.91"
 
 readonly G_OPT_FLD_NM_S="-n"
 readonly G_OPT_FLD_NM_L="--fields"
 readonly G_MATCH_FLD_NM="@($G_OPT_FLD_NM_S|$G_OPT_FLD_NM_L)"
 G_FLD_NUM="0"
 
-readonly G_POS_REGX_S="-r"
-readonly G_POS_REGX_L="--pos-regex"
-readonly G_MATCH_POS_REGX="@($G_POS_REGX_S|$G_POS_REGX_L)"
-G_POS_REGX="0"
+readonly G_OPT_FLD_SEP_S="-F"
+readonly G_OPT_FLD_SEP_L="--field-sep"
+readonly G_MATCH_FLD_SEP="@($G_OPT_FLD_SEP_S|$G_OPT_FLD_SEP_L)"
 
-readonly G_OPT_SYNTX_STR_S="-s"
+readonly G_POS_SPEC_S="-p"
+readonly G_POS_SPEC_L="--pos-spec"
+readonly G_MATCH_POS_SPEC="@($G_POS_SPEC_S|$G_POS_SPEC_L)"
+G_POS_SPEC="0"
+
+readonly G_OPT_SYNTX_STR_S="-t"
 readonly G_OPT_SYNTX_STR_L="--syntax-str"
 readonly G_MATCH_SYNTX_STR="@($G_OPT_SYNTX_STR_S|$G_OPT_SYNTX_STR_L)"
 G_SYNTX_STR="0"
 
-readonly G_OPT_CMD_S="-c"
-readonly G_OPT_CMD_L="--command"
-readonly G_MATCH_CMD="@($G_OPT_CMD_S|$G_OPT_CMD_L)"
-G_CMD_LINE="0"
+readonly G_OPT_STRING_S="-s"
+readonly G_OPT_STRING_L="--string"
+readonly G_MATCH_CMD="@($G_OPT_STRING_S|$G_OPT_STRING_L)"
+G_STRING_LINE="0"
 
-readonly G_OPT_SYNTX_CHECK_S="-S"
+readonly G_OPT_SYNTX_CHECK_S="-c"
 readonly G_OPT_SYNTX_CHECK_L="--syntax-check"
 readonly G_MATCH_SYNTX_CHK="@($G_OPT_SYNTX_CHECK_S|$G_OPT_SYNTX_CHECK_L)"
 G_SYNTX_CHK="0"
@@ -40,6 +44,7 @@ G_DRY_RUN=""
 readonly G_OPT_HELP_S="-h"
 readonly G_OPT_HELP_L="--help"
 readonly G_MATCH_HELP="@($G_OPT_HELP_S|$G_OPT_HELP_L)"
+G_FLD_SEP=""
 
 readonly G_OPT_VER_S="-v"
 readonly G_OPT_VER_L="--version"
@@ -67,11 +72,12 @@ function assert_main_arg_num
 }
 
 function set_fld_num   { G_FLD_NUM="$2"; }
-function set_pos_regx  { G_POS_REGX="$2"; }
+function set_pos_spec  { G_POS_SPEC="$2"; }
 function set_syntx_str { G_SYNTX_STR="$2"; }
 function set_syntx_chk { G_SYNTX_CHK="$2"; }
-function set_cmd       { G_CMD_LINE="$2"; }
+function set_cmd       { G_STRING_LINE="$2"; }
 function set_dry_run   { G_DRY_RUN="yes"; }
+function set_fld_sep   { G_FLD_SEP="-F'$2'"; }
 
 function print_help
 {
@@ -99,8 +105,8 @@ function get_args
 		 $G_MATCH_FLD_NM)
 			L_OPT_ARG="set_fld_num"
 		 ;;
-		 $G_MATCH_POS_REGX)
-			L_OPT_ARG="set_pos_regx"
+		 $G_MATCH_POS_SPEC)
+			L_OPT_ARG="set_pos_spec"
 		 ;;
 		 $G_MATCH_SYNTX_STR)
 			L_OPT_ARG="set_syntx_str"
@@ -113,6 +119,9 @@ function get_args
 		 ;;
 		 $G_MATCH_DRY_RUN)
 			L_OPT_NO_ARG="set_dry_run"
+		 ;;
+		 $G_MATCH_FLD_SEP)
+			L_OPT_ARG="set_fld_sep"
 		 ;;
 		 $G_MATCH_HELP)
 			L_OPT_NO_ARG="print_help"
@@ -152,32 +161,34 @@ function main
 
 function call_awk
 {
-	if [ "$G_CMD_LINE" == "0" ]; then
-		error_exit "'$G_OPT_CMD_L' not given"
+	if [ "$G_STRING_LINE" == "0" ]; then
+		error_exit "'$G_OPT_STRING_L' not given"
 	fi
 	
-	awk_it "$G_FLD_NUM"\
-		"$G_POS_REGX"\
+	awk_it "$G_FLD_SEP"\
+		"$G_FLD_NUM"\
+		"$G_POS_SPEC"\
 		"$G_SYNTX_STR"\
 		"$G_SYNTX_CHK"\
-		"$G_CMD_LINE"\
+		"$G_STRING_LINE"\
 		"$G_FILES"
 }
 
 function awk_it
 {
-	local L_FLD_NUM="$1"
-	local L_POS_REGX="$2"
-	local L_SYNTAX_STR="$3"
-	local L_SYNTAX_CHK="$4"
-	local L_CMD_LINE="$5"
-	local L_FILES="$6"
+	local L_FLD_SEP="$1"
+	local L_FLD_NUM="$2"
+	local L_POS_SPEC="$3"
+	local L_SYNTAX_STR="$4"
+	local L_SYNTAX_CHK="$5"
+	local L_STRING_LINE="$6"
+	local L_FILES="$7"
 
 readonly local L_SRC='
 function get_fld_syntax_err_str(fld_num,    err_str, res) {
 	res = get_file_pos()
-	res = sprintf("%s: %d fields expected, but fld_num %d fields instead",
-		res, fld_num, get_fld_num())
+	res = sprintf("%s: %d fields expected, but got %d instead",
+		res, get_fld_num(), fld_num)
 	
 	err_str = get_syntx_str()
 	if (err_str)
@@ -188,8 +199,8 @@ function get_fld_syntax_err_str(fld_num,    err_str, res) {
 
 function get_rx_syntax_err_str(fld_num, fld_str, fld_rx,    res) {
 	res = get_file_pos()
-	res = sprintf("field %d \"%s\" should match \"%s\", but does not",
-				fld_num, fld_str, fld_rx)
+	res = sprintf("%s: field %d \"%s\" should match \"%s\", but does not",
+				res, fld_num, fld_str, fld_rx)
 	return res
 }
 
@@ -210,59 +221,71 @@ function set_fld_num(fn)   {_B_fld_num = fn}
 function get_fld_num()     {return _B_fld_num}
 function set_syntx_str(sx) {_B_err_str = sx}
 function get_syntx_str()   {return _B_err_str}
-function set_pos_regx(pr)  {_B_pos_regx = pr}
-function get_pos_regx()    {return _B_pos_regx}
-function set_check_rx(crx) {_B_check_crx = crx}
-function get_check_rx()    {return _B_check_crx}
-function set_cmd_line(cl)  {_B_cmd_line = cl}
-function get_cmd_line()    {return _B_cmd_line}
+function set_pos_spec(pr)  {_B_pos_spec = pr}
+function get_pos_spec()    {return _B_pos_spec}
+function set_check_rx(fnum, crx) {_B_check_crx[fnum] = crx}
+function get_check_rx(fnum)      {return _B_check_crx[fnum]}
+function set_string_line(cl) {_B_string_line = cl}
+function get_string_line()   {return _B_string_line}
+
 
 function init() {
 	set_prog_name(ProgName ? ProgName : ARGV[0])
 	set_fld_num(FldNum ? FldNum : 2)
-	set_pos_regx(PosRegx ? PosRegx : "#%d")
+	set_pos_spec(PosRegx ? PosRegx : "#%d")
 	set_syntx_str(SyntaxStr ? SyntaxStr : "")
-	set_check_rx(SyntaxChk ? SyntaxChk : "")
 	
-	if (CmdLine)
-		set_cmd_line(CmdLine)
+	if (SyntaxChk)
+		process_check_rx(SyntaxChk)
+	
+	if (TheString)
+		set_string_line(TheString)
 	else
-		err_quit("-vCmdLine not given")
+		err_quit("-vTheString not given")
 }
 
-function check_field(field, fnum,    chk_rx, arr1, len1, arr2, len2, i, j, rx) {
-	chk_rx = get_check_rx()
+function CHK_RX_RS() {return ";"}
+function CHK_RX_FS() {return "~"}
+function CHK_RX() {return "^[0-9]+~.+$"}
+function process_check_rx(chk_rx,    chk1, i, arr1, len1, arr2) {
 	
-	if (!chk_rx)
-		return
-	
-	len1 = split(chk_rx, arr1, ";")
+	len1 = split(chk_rx, arr1, CHK_RX_RS())
 	for (i = 1; i <= len1; ++i) {
+		chk1 = arr1[i]
 		
-		len2 = split(arr1[i], arr2, "~")
-		rx = arr2[2]
-		if ((fnum == arr2[1]) && !match(field, rx))
-			err_quit(get_rx_syntax_err_str(fnum, field, rx))
+		if (!match(chk1, CHK_RX()))
+			err_quit(sprintf("\"%s\" should match %s, but does not",
+				chk1, CHK_RX()))
+		
+		split(chk1, arr2, CHK_RX_FS())
+		set_check_rx(arr2[1], arr2[2])
 	}
 }
 
-function gen_cmd(arr, len,    i, cmd, regx, fld) {
-	cmd = get_cmd_line()
-	for (i = 1; i <= len; ++i) {
+function check_field(field, fnum,    chk_rx) {
+		chk_rx = get_check_rx(fnum)
+		if (chk_rx && !match(field, chk_rx))
+			err_quit(get_rx_syntax_err_str(fnum, field, chk_rx))
+}
+
+function gen_str(arr, len,    i, str, regx, fld) {
+	str = get_string_line()
+	for (i = 0; i <= len; ++i) {
 		fld = arr[i]
 		
 		check_field(fld, i)
-		regx = sprintf(get_pos_regx(), i)
-		gsub(regx, fld, cmd)
+		regx = sprintf(get_pos_spec(), i)
+		gsub(regx, fld, str)
 	}
-	return cmd
+	return str
 }
 
 function process_line(fname, linenum, str,    arr, len) {
 	len = split(str, arr)
+	arr[0] = str
 	if (len != get_fld_num())
 		err_quit(get_fld_syntax_err_str(len))
-	return gen_cmd(arr, len)
+	return gen_str(arr, len)
 }
 
 BEGIN {init()}
@@ -270,12 +293,13 @@ $0 ~ /^[[:space:]]*$/ {next}
 $0 ~ /^[[:space:]]*#/ {next}
 {print process_line(FILENAME, FNR, $0)}
 '	
-	echo_eval "awk -vProgName='$0' "\
+	echo_eval "awk $L_FLD_SEP "\
+		"-vProgName='$0' "\
 		"-vFldNum='$L_FLD_NUM' "\
-		"-vPosRegx='$L_POS_REGX' "\
+		"-vPosRegx='$L_POS_SPEC' "\
 		"-vSyntaxStr='$L_SYNTAX_STR' "\
 		"-vSyntaxChk='$L_SYNTAX_CHK' "\
-		"-vCmdLine='$L_CMD_LINE' "\
+		"-vTheString='$L_STRING_LINE' "\
 		"'$L_SRC' "\
 		"$L_FILES"
 }
