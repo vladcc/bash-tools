@@ -1,13 +1,17 @@
 #!/bin/bash
 
-#TODO: WRITE HELP, TEST
+# Author: Vladimir Dinev
+# vld.dinev@gmail.com
+# 2021-01-17
+
+# TODO: CHEK HELP, WRITE TESTS
 
 set -u
 
 readonly G_SCRIPT_NAME="$(basename $0)"
 readonly G_SCRIPT_VERSION="0.91"
 
-readonly G_OPT_FLD_NM_S="-n"
+readonly G_OPT_FLD_NM_S="-f"
 readonly G_OPT_FLD_NM_L="--fields"
 readonly G_MATCH_FLD_NM="@($G_OPT_FLD_NM_S|$G_OPT_FLD_NM_L)"
 G_FLD_NUM="0"
@@ -58,9 +62,11 @@ function error_exit   { error_print "$@"; exit_failure; }
 function exit_success { exit 0; }
 function exit_failure { exit 1; } 
 
+readonly G_VER_STR="$G_SCRIPT_NAME $G_SCRIPT_VERSION"
+readonly G_USE_STR="Use: $G_SCRIPT_NAME <option> [args..] [files]"
 function print_use
 {
-	print_fd2 "Use: $G_SCRIPT_NAME <option> [args..]"
+	print_fd2 "$G_USE_STR"
 	print_fd2 "Try '$G_SCRIPT_NAME $G_OPT_HELP_L' for help"
 	exit_failure
 }
@@ -81,13 +87,70 @@ function set_fld_sep   { G_FLD_SEP="-F'$2'"; }
 
 function print_help
 {
-	echo "help here"
+echo "$G_USE_STR"
+echo "Generates strings using positional arguments from the command line. Input"
+echo "is stdin if no files are given. Empty lines and lines beginning with a"
+echo "'#' are ignore."
+echo ""
+echo "$G_OPT_FLD_NM_S, $G_OPT_FLD_NM_L <num>"
+echo "Expect input to have <num> number of fields per line or quit with an"
+echo "error. Default is 2."
+echo ""
+echo "$G_OPT_FLD_SEP_S, $G_OPT_FLD_SEP_L <field-sep>"
+echo "Passes <field-sep> to awk. E.g."
+echo "$ echo 'a;b' | $G_SCRIPT_NAME $G_OPT_FLD_SEP_S ';' -s 'ls #0 #1 #2'"
+echo "ls a;b a b"
+echo ""
+echo "$G_POS_SPEC_S, $G_POS_SPEC_L <fmt-str>"
+echo "Change the positional argument string. Default is '#%d', i.e. a '#'"
+echo "followed by a number. Note that this limits the number of positional"
+echo "arguments to 9, since only the '#1' in '#10' will be matched and"
+echo "replaced. E.g."
+echo "$ echo a b c d e f g h i j | $G_SCRIPT_NAME $G_OPT_FLD_NM_S 10 $G_OPT_STRING_S 'ls #1 #10'"
+echo "ls a a0"
+echo "If more than 9 positional arguments are needed, <fmt-str> should include"
+echo "an end delimiter, e.g. '#%d#'"
+echo "$ echo a b c d e f g h i j | $G_SCRIPT_NAME $G_OPT_FLD_NM_S 10 $G_POS_SPEC_S '#%d#'  $G_OPT_STRING_S 'ls #1# #10#'"
+echo "ls a j"
+echo ""
+echo "$G_OPT_SYNTX_STR_S, $G_OPT_SYNTX_STR_L <expected-syntax>"
+echo "Syntax clarification string. E.g."
+echo "$ echo a b c | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2'"
+echo "prep.sh: error: file "-", line 1: \"a b c\": 2 fields expected, but got 3 instead"
+echo "vs."
+echo "$ echo a b c | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_STR_S '<host> <port>'"
+echo "prep.sh: error: file "-", line 1: \"a b c\": 2 fields expected, but got 3 instead; syntax should be \"<host> <port>\""
+echo ""
+echo "$G_OPT_STRING_S, $G_OPT_STRING_L <string-with-pos-args>"
+echo "The string to operate on."
+echo ""
+echo "$G_OPT_SYNTX_CHECK_S, $G_OPT_SYNTX_CHECK_L <<fnum>~<regex>;<fnum>~<regex>...>"
+echo "Matches the field with number <fnum> to its respective <regex>. If the"
+echo "match fails, quit with an error. Effectively, this allows for regex"
+echo "syntax checks. E.g."
+echo "$ echo a b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_CHECK_S '1~^localhost$'"
+echo "prep.sh: error: file \"-\", line 1: \"a b\": field 1 \"a\" should match \"^localhost$\", but does not"
+echo "$ echo localhost b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_CHECK_S '1~^localhost$'"
+echo "nc localhost b"
+echo "$ echo localhost b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_CHECK_S '1~^localhost$;2~^[0-9]+$'"
+echo "prep.sh: error: file \"-\", line 1: \"localhost b\": field 2 \"b\" should match \"^[0-9]+$\", but does not"
+echo "$ echo localhost 8000 | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_CHECK_S '1~^localhost$;2~^[0-9]+$'"
+echo "nc localhost 8000"
+echo ""
+echo "$G_OPT_DRY_RUN_S, $G_OPT_DRY_RUN_L"
+echo "Print the commands which constitute this script, but do not execute them."
+echo ""
+echo "$G_OPT_HELP_S, $G_OPT_HELP_L"
+echo "Print this screen."
+echo ""
+echo "$G_OPT_VER_L, $G_OPT_VER_S"
+echo "Print version information."
 	exit_success
 }
 
 function print_version
 {
-	echo "$G_SCRIPT_NAME $G_SCRIPT_VERSION"
+	echo "$G_VER_STR"
 	exit_success
 }
 
@@ -130,7 +193,7 @@ function get_args
 			L_OPT_NO_ARG="print_version"
 		 ;;
 		 $L_UNBOUND_ARG)
-			error_exit "'$1' uknown option"
+			error_exit "'$1' unknown option"
 		 ;;
 		 *)
 			G_FILES="${G_FILES}'$1' "
