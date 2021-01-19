@@ -9,36 +9,45 @@
 set -u
 
 readonly G_SCRIPT_NAME="$(basename $0)"
-readonly G_SCRIPT_VERSION="0.91"
+readonly G_SCRPIT_DIR="$(dirname $(realpath $0))"
+readonly G_SCRIPT_VER="1.0"
+function print_version { echo "$G_SCRIPT_NAME $G_SCRIPT_VER"; }
 
-readonly G_OPT_FLD_NM_S="-f"
-readonly G_OPT_FLD_NM_L="--fields"
-readonly G_MATCH_FLD_NM="@($G_OPT_FLD_NM_S|$G_OPT_FLD_NM_L)"
-G_FLD_NUM="0"
+function print_fd2    { echo "$@" >&2; }
+function error_print  { print_fd2 "$0: error: $@"; }
+function error_exit   { error_print "$@"; exit_failure; }
+function exit_success { exit 0; }
+function exit_failure { exit 1; }
 
-readonly G_OPT_FLD_SEP_S="-F"
-readonly G_OPT_FLD_SEP_L="--field-sep"
-readonly G_MATCH_FLD_SEP="@($G_OPT_FLD_SEP_S|$G_OPT_FLD_SEP_L)"
+readonly G_OPT_NUM_FIELDS_S="-f"
+readonly G_OPT_NUM_FIELDS_L="--fields"
+readonly G_MATCH_NUM_FIELDS="@($G_OPT_NUM_FIELDS_S|$G_OPT_NUM_FIELDS_L)"
+G_NUM_FIELDS=""
 
-readonly G_POS_SPEC_S="-p"
-readonly G_POS_SPEC_L="--pos-spec"
-readonly G_MATCH_POS_SPEC="@($G_POS_SPEC_S|$G_POS_SPEC_L)"
-G_POS_SPEC="0"
+readonly G_OPT_FIELD_SEP_S="-F"
+readonly G_OPT_FIELD_SEP_L="--field_sep"
+readonly G_MATCH_FIELD_SEP="@($G_OPT_FIELD_SEP_S|$G_OPT_FIELD_SEP_L)"
+G_FIELD_SEP=""
 
-readonly G_OPT_SYNTX_STR_S="-t"
-readonly G_OPT_SYNTX_STR_L="--syntax-str"
-readonly G_MATCH_SYNTX_STR="@($G_OPT_SYNTX_STR_S|$G_OPT_SYNTX_STR_L)"
-G_SYNTX_STR="0"
+readonly G_OPT_POS_SPEC_S="-p"
+readonly G_OPT_POS_SPEC_L="--pos-spec"
+readonly G_MATCH_POS_SPEC="@($G_OPT_POS_SPEC_S|$G_OPT_POS_SPEC_L)"
+G_POS_SPEC=""
+
+readonly G_OPT_SYNTAX_STR_S="-t"
+readonly G_OPT_SYNTAX_STR_L="--syntax-str"
+readonly G_MATCH_SYNTAX_STR="@($G_OPT_SYNTAX_STR_S|$G_OPT_SYNTAX_STR_L)"
+G_SYNTAX_STR=""
 
 readonly G_OPT_STRING_S="-s"
 readonly G_OPT_STRING_L="--string"
-readonly G_MATCH_CMD="@($G_OPT_STRING_S|$G_OPT_STRING_L)"
-G_STRING_LINE="0"
+readonly G_MATCH_STRING="@($G_OPT_STRING_S|$G_OPT_STRING_L)"
+G_STRING=""
 
-readonly G_OPT_SYNTX_CHECK_S="-c"
-readonly G_OPT_SYNTX_CHECK_L="--syntax-check"
-readonly G_MATCH_SYNTX_CHK="@($G_OPT_SYNTX_CHECK_S|$G_OPT_SYNTX_CHECK_L)"
-G_SYNTX_CHK="0"
+readonly G_OPT_SYNTAX_CHECK_S="-c"
+readonly G_OPT_SYNTAX_CHECK_L="--syntax-check"
+readonly G_MATCH_SYNTAX_CHECK="@($G_OPT_SYNTAX_CHECK_S|$G_OPT_SYNTAX_CHECK_L)"
+G_SYNTAX_CHECK=""
 
 readonly G_OPT_DRY_RUN_S="-d"
 readonly G_OPT_DRY_RUN_L="--dry-run"
@@ -48,158 +57,70 @@ G_DRY_RUN=""
 readonly G_OPT_HELP_S="-h"
 readonly G_OPT_HELP_L="--help"
 readonly G_MATCH_HELP="@($G_OPT_HELP_S|$G_OPT_HELP_L)"
-G_FLD_SEP=""
+G_HELP=""
 
-readonly G_OPT_VER_S="-v"
-readonly G_OPT_VER_L="--version"
-readonly G_MATCH_VER="@($G_OPT_VER_L|$G_OPT_VER_S)"
+readonly G_OPT_VERSION_S="-v"
+readonly G_OPT_VERSION_L="--version"
+readonly G_MATCH_VERSION="@($G_OPT_VERSION_S|$G_OPT_VERSION_L)"
+G_VERSION=""
 
-G_FILES=""
+G_CMD_LINE_OTHER=""
 
-function print_fd2    { echo "$@" >&2; }
-function error_print  { print_fd2 "$0: error: $@"; }
-function error_exit   { error_print "$@"; exit_failure; }
-function exit_success { exit 0; }
-function exit_failure { exit 1; } 
-
-readonly G_VER_STR="$G_SCRIPT_NAME $G_SCRIPT_VERSION"
-readonly G_USE_STR="Use: $G_SCRIPT_NAME <option> [args..] [files]"
-function print_use
-{
-	print_fd2 "$G_USE_STR"
-	print_fd2 "Try '$G_SCRIPT_NAME $G_OPT_HELP_L' for help"
-	exit_failure
-}
-function assert_main_arg_num
-{
-	if [ "$#" -lt 1 ]; then
-		print_use
-	fi
-}
-
-function set_fld_num   { G_FLD_NUM="$2"; }
-function set_pos_spec  { G_POS_SPEC="$2"; }
-function set_syntx_str { G_SYNTX_STR="$2"; }
-function set_syntx_chk { G_SYNTX_CHK="$2"; }
-function set_cmd       { G_STRING_LINE="$2"; }
-function set_dry_run   { G_DRY_RUN="yes"; }
-function set_fld_sep   { G_FLD_SEP="-F'$2'"; }
-
-function print_help
-{
-echo "$G_USE_STR"
-echo "Generates strings using positional arguments from the command line. Input"
-echo "is stdin if no files are given. Empty lines and lines beginning with a"
-echo "'#' are ignore."
-echo ""
-echo "$G_OPT_FLD_NM_S, $G_OPT_FLD_NM_L <num>"
-echo "Expect input to have <num> number of fields per line or quit with an"
-echo "error. Default is 2."
-echo ""
-echo "$G_OPT_FLD_SEP_S, $G_OPT_FLD_SEP_L <field-sep>"
-echo "Passes <field-sep> to awk. E.g."
-echo "$ echo 'a;b' | $G_SCRIPT_NAME $G_OPT_FLD_SEP_S ';' -s 'ls #0 #1 #2'"
-echo "ls a;b a b"
-echo ""
-echo "$G_POS_SPEC_S, $G_POS_SPEC_L <fmt-str>"
-echo "Change the positional argument string. Default is '#%d', i.e. a '#'"
-echo "followed by a number. Note that this limits the number of positional"
-echo "arguments to 9, since only the '#1' in '#10' will be matched and"
-echo "replaced. E.g."
-echo "$ echo a b c d e f g h i j | $G_SCRIPT_NAME $G_OPT_FLD_NM_S 10 $G_OPT_STRING_S 'ls #1 #10'"
-echo "ls a a0"
-echo "If more than 9 positional arguments are needed, <fmt-str> should include"
-echo "an end delimiter, e.g. '#%d#'"
-echo "$ echo a b c d e f g h i j | $G_SCRIPT_NAME $G_OPT_FLD_NM_S 10 $G_POS_SPEC_S '#%d#'  $G_OPT_STRING_S 'ls #1# #10#'"
-echo "ls a j"
-echo ""
-echo "$G_OPT_SYNTX_STR_S, $G_OPT_SYNTX_STR_L <expected-syntax>"
-echo "Syntax clarification string. E.g."
-echo "$ echo a b c | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2'"
-echo "prep.sh: error: file "-", line 1: \"a b c\": 2 fields expected, but got 3 instead"
-echo "vs."
-echo "$ echo a b c | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_STR_S '<host> <port>'"
-echo "prep.sh: error: file "-", line 1: \"a b c\": 2 fields expected, but got 3 instead; syntax should be \"<host> <port>\""
-echo ""
-echo "$G_OPT_STRING_S, $G_OPT_STRING_L <string-with-pos-args>"
-echo "The string to operate on."
-echo ""
-echo "$G_OPT_SYNTX_CHECK_S, $G_OPT_SYNTX_CHECK_L <<fnum>~<regex>;<fnum>~<regex>...>"
-echo "Matches the field with number <fnum> to its respective <regex>. If the"
-echo "match fails, quit with an error. Effectively, this allows for regex"
-echo "syntax checks. E.g."
-echo "$ echo a b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_CHECK_S '1~^localhost$'"
-echo "prep.sh: error: file \"-\", line 1: \"a b\": field 1 \"a\" should match \"^localhost$\", but does not"
-echo "$ echo localhost b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_CHECK_S '1~^localhost$'"
-echo "nc localhost b"
-echo "$ echo localhost b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_CHECK_S '1~^localhost$;2~^[0-9]+$'"
-echo "prep.sh: error: file \"-\", line 1: \"localhost b\": field 2 \"b\" should match \"^[0-9]+$\", but does not"
-echo "$ echo localhost 8000 | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTX_CHECK_S '1~^localhost$;2~^[0-9]+$'"
-echo "nc localhost 8000"
-echo ""
-echo "$G_OPT_DRY_RUN_S, $G_OPT_DRY_RUN_L"
-echo "Print the commands which constitute this script, but do not execute them."
-echo ""
-echo "$G_OPT_HELP_S, $G_OPT_HELP_L"
-echo "Print this screen."
-echo ""
-echo "$G_OPT_VER_L, $G_OPT_VER_S"
-echo "Print version information."
-	exit_success
-}
-
-function print_version
-{
-	echo "$G_VER_STR"
-	exit_success
-}
+function set_num_fields { G_NUM_FIELDS="$2"; }
+function set_field_sep { G_FIELD_SEP="$2"; }
+function set_pos_spec { G_POS_SPEC="$2"; }
+function set_syntax_str { G_SYNTAX_STR="$2"; }
+function set_string { G_STRING="$2"; }
+function set_syntax_check { G_SYNTAX_CHECK="$2"; }
+function set_dry_run { G_DRY_RUN="yes"; }
+function set_help { G_HELP="yes"; print_help; }
+function set_version { G_VERSION="yes"; print_version; }
 
 function get_args
 {
 	shopt -s extglob
-	
 	local L_UNBOUND_ARG="-*"
-	
+
 	while [ "$#" -gt 0 ]; do
 		local L_OPT_ARG=""
 		local L_OPT_NO_ARG=""
-		
+
 		case "$1" in
-		 $G_MATCH_FLD_NM)
-			L_OPT_ARG="set_fld_num"
-		 ;;
-		 $G_MATCH_POS_SPEC)
-			L_OPT_ARG="set_pos_spec"
-		 ;;
-		 $G_MATCH_SYNTX_STR)
-			L_OPT_ARG="set_syntx_str"
-		 ;;
-		 $G_MATCH_SYNTX_CHK)
-			L_OPT_ARG="set_syntx_chk"
-		 ;;
-		 $G_MATCH_CMD)
-			L_OPT_ARG="set_cmd"
-		 ;;
-		 $G_MATCH_DRY_RUN)
-			L_OPT_NO_ARG="set_dry_run"
-		 ;;
-		 $G_MATCH_FLD_SEP)
-			L_OPT_ARG="set_fld_sep"
-		 ;;
-		 $G_MATCH_HELP)
-			L_OPT_NO_ARG="print_help"
-		 ;;
-		 $G_MATCH_VER)
-			L_OPT_NO_ARG="print_version"
-		 ;;
-		 $L_UNBOUND_ARG)
-			error_exit "'$1' unknown option"
-		 ;;
-		 *)
-			G_FILES="${G_FILES}'$1' "
-		 ;;
+			$G_MATCH_NUM_FIELDS)
+				L_OPT_ARG="set_num_fields"
+			;;
+			$G_MATCH_FIELD_SEP)
+				L_OPT_ARG="set_field_sep"
+			;;
+			$G_MATCH_POS_SPEC)
+				L_OPT_ARG="set_pos_spec"
+			;;
+			$G_MATCH_SYNTAX_STR)
+				L_OPT_ARG="set_syntax_str"
+			;;
+			$G_MATCH_STRING)
+				L_OPT_ARG="set_string"
+			;;
+			$G_MATCH_SYNTAX_CHECK)
+				L_OPT_ARG="set_syntax_check"
+			;;
+			$G_MATCH_DRY_RUN)
+				L_OPT_NO_ARG="set_dry_run"
+			;;
+			$G_MATCH_HELP)
+				L_OPT_NO_ARG="set_help"
+			;;
+			$G_MATCH_VERSION)
+				L_OPT_NO_ARG="set_version"
+			;;
+			$L_UNBOUND_ARG)
+				error_exit "'$1' unknown option"
+			;;
+			*)
+				G_CMD_LINE_OTHER="${G_CMD_LINE_OTHER}'$1' "
+			;;
 		esac
-		
+
 		if [ ! -z "$L_OPT_ARG" ]; then
 			if [ "$#" -lt 2 ] || [ "${2:0:1}" == "-" ]; then
 				error_exit "'$1' missing argument"
@@ -215,6 +136,84 @@ function get_args
 	done
 }
 
+function print_version
+{
+	echo "$G_VER_STR"
+	exit_success
+}
+
+readonly G_VER_STR="$G_SCRIPT_NAME $G_SCRIPT_VER"
+readonly G_USE_STR="Use: $G_SCRIPT_NAME <option> [args..] [files]"
+function print_use
+{
+	print_fd2 "$G_USE_STR"
+	print_fd2 "Try '$G_SCRIPT_NAME $G_OPT_HELP_L' for help"
+	exit_failure
+}
+
+function print_help
+{
+echo "$G_USE_STR"
+echo "Generates strings using positional arguments from the command line. Input"
+echo "is stdin if no files are given. Empty lines and lines beginning with a"
+echo "'#' are ignored."
+echo ""
+echo "$G_OPT_NUM_FIELDS_S, $G_OPT_NUM_FIELDS_L <num>"
+echo "Expect input to have <num> number of fields per line or quit with an"
+echo "error. Default is 2."
+echo ""
+echo "$G_OPT_FIELD_SEP_S, $G_OPT_FIELD_SEP_L <field-sep>"
+echo "Passes <field-sep> to awk. E.g."
+echo "$ echo 'a;b' | $G_SCRIPT_NAME $G_OPT_FIELD_SEP_S ';' -s 'ls #0 #1 #2'"
+echo "ls a;b a b"
+echo ""
+echo "$G_OPT_POS_SPEC_S, $G_OPT_POS_SPEC_L <fmt-str>"
+echo "Change the positional argument string. Default is '#%d', i.e. a '#'"
+echo "followed by a number. Note that this limits the number of positional"
+echo "arguments to 9, since only the '#1' in '#10' will be matched and"
+echo "replaced. E.g."
+echo "$ echo a b c d e f g h i j | $G_SCRIPT_NAME $G_OPT_NUM_FIELDS_S 10 $G_OPT_STRING_S 'ls #1 #10'"
+echo "ls a a0"
+echo "If more than 9 positional arguments are needed, <fmt-str> should include"
+echo "an end delimiter, e.g. '#%d#'"
+echo "$ echo a b c d e f g h i j | $G_SCRIPT_NAME $G_OPT_NUM_FIELDS_S 10 $G_OPT_POS_SPEC_S '#%d#'  $G_OPT_STRING_S 'ls #1# #10#'"
+echo "ls a j"
+echo ""
+echo "$G_OPT_SYNTAX_STR_S, $G_OPT_SYNTAX_STR_L <expected-syntax>"
+echo "Syntax clarification string. E.g."
+echo "$ echo a b c | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2'"
+echo "prep.sh: error: file "-", line 1: \"a b c\": 2 fields expected, but got 3 instead"
+echo "vs."
+echo "$ echo a b c | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_STR_S '<host> <port>'"
+echo "prep.sh: error: file "-", line 1: \"a b c\": 2 fields expected, but got 3 instead; syntax should be \"<host> <port>\""
+echo ""
+echo "$G_OPT_STRING_S, $G_OPT_STRING_L <string-with-pos-args>"
+echo "The string to operate on."
+echo ""
+echo "$G_OPT_SYNTAX_CHECK_S, $G_OPT_SYNTAX_CHECK_L <<fnum>~<regex>;<fnum>~<regex>...>"
+echo "Matches the field with number <fnum> to its respective <regex>. If the"
+echo "match fails, quit with an error. Effectively, this allows for regex"
+echo "syntax checks. E.g."
+echo "$ echo a b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_CHECK_S '1~^localhost$'"
+echo "prep.sh: error: file \"-\", line 1: \"a b\": field 1 \"a\" should match \"^localhost$\", but does not"
+echo "$ echo localhost b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_CHECK_S '1~^localhost$'"
+echo "nc localhost b"
+echo "$ echo localhost b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_CHECK_S '1~^localhost$;2~^[0-9]+$'"
+echo "prep.sh: error: file \"-\", line 1: \"localhost b\": field 2 \"b\" should match \"^[0-9]+$\", but does not"
+echo "$ echo localhost 8000 | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_CHECK_S '1~^localhost$;2~^[0-9]+$'"
+echo "nc localhost 8000"
+echo ""
+echo "$G_OPT_DRY_RUN_S, $G_OPT_DRY_RUN_L"
+echo "Print the commands which constitute this script, but do not execute them."
+echo ""
+echo "$G_OPT_HELP_S, $G_OPT_HELP_L"
+echo "Print this screen."
+echo ""
+echo "$G_OPT_VERSION_S, $G_OPT_VERSION_L"
+echo "Print version information."
+	exit_success
+}
+
 function main
 {
 	assert_main_arg_num "$@"
@@ -222,19 +221,26 @@ function main
 	call_awk
 }
 
+function assert_main_arg_num
+{
+	if [ "$#" -lt 1 ]; then
+		print_use
+	fi
+}
+
 function call_awk
 {
-	if [ "$G_STRING_LINE" == "0" ]; then
+	if [ -z "$G_STRING" ]; then
 		error_exit "'$G_OPT_STRING_L' not given"
 	fi
 	
-	awk_it "$G_FLD_SEP"\
-		"$G_FLD_NUM"\
+	awk_it "$G_FIELD_SEP"\
+		"$G_NUM_FIELDS"\
 		"$G_POS_SPEC"\
-		"$G_SYNTX_STR"\
-		"$G_SYNTX_CHK"\
-		"$G_STRING_LINE"\
-		"$G_FILES"
+		"$G_SYNTAX_STR"\
+		"$G_SYNTAX_CHECK"\
+		"$G_STRING"\
+		"$G_CMD_LINE_OTHER"
 }
 
 function awk_it

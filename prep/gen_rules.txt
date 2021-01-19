@@ -1,0 +1,50 @@
+# feed into genbash.awk
+
+begin
+script_ver 1.0
+
+opt_name      num_fields
+opt_takes_arg true
+opt_short     f
+opt_long      fields
+
+opt_name      field_sep
+opt_takes_arg true
+opt_short     F
+opt_long      field_sep
+
+opt_name      pos_spec
+opt_takes_arg true
+opt_short     p
+opt_long      pos-spec
+
+opt_name      syntax_str
+opt_takes_arg true
+opt_short     t
+opt_long      syntax-str
+
+opt_name      string
+opt_takes_arg true
+opt_short     s
+opt_long      string
+
+opt_name      syntax_check
+opt_takes_arg true
+opt_short     c
+opt_long      syntax-check
+
+opt_name      dry_run
+opt_takes_arg false
+opt_short     d
+opt_long      dry-run
+
+opt_name      help
+opt_takes_arg false
+opt_short     h
+opt_long      help
+
+opt_name      version
+opt_takes_arg false
+opt_short     v
+opt_long      version
+end
