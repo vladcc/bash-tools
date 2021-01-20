@@ -11,7 +11,7 @@ opt_long      fields
 opt_name      field_sep
 opt_takes_arg true
 opt_short     F
-opt_long      field_sep
+opt_long      field-sep
 
 opt_name      pos_spec
 opt_takes_arg true

@@ -2,9 +2,7 @@
 
 # Author: Vladimir Dinev
 # vld.dinev@gmail.com
-# 2021-01-17
-
-# TODO: CHEK HELP, WRITE TESTS
+# 2021-01-20
 
 set -u
 
@@ -25,7 +23,7 @@ readonly G_MATCH_NUM_FIELDS="@($G_OPT_NUM_FIELDS_S|$G_OPT_NUM_FIELDS_L)"
 G_NUM_FIELDS=""
 
 readonly G_OPT_FIELD_SEP_S="-F"
-readonly G_OPT_FIELD_SEP_L="--field_sep"
+readonly G_OPT_FIELD_SEP_L="--field-sep"
 readonly G_MATCH_FIELD_SEP="@($G_OPT_FIELD_SEP_S|$G_OPT_FIELD_SEP_L)"
 G_FIELD_SEP=""
 
@@ -67,7 +65,7 @@ G_VERSION=""
 G_CMD_LINE_OTHER=""
 
 function set_num_fields { G_NUM_FIELDS="$2"; }
-function set_field_sep { G_FIELD_SEP="$2"; }
+function set_field_sep { G_FIELD_SEP="-F'$2'"; }
 function set_pos_spec { G_POS_SPEC="$2"; }
 function set_syntax_str { G_SYNTAX_STR="$2"; }
 function set_string { G_STRING="$2"; }
