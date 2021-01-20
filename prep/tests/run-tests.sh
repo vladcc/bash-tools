@@ -85,6 +85,20 @@ ls 1 2 3 1;2;3 3 2 1"
 	bt_diff "<(echo \"$L_GOT\")" "<(echo \"$L_EXP\")"
 	bt_assert_success
 	
+	# as a file
+	L_GOT="$(run_prep -f 3 -F ';' -s 'ls #1 #2 #3 #0 #3 #2 #1' <(echo "$L_MLN"))"
+	bt_assert_success
+	bt_diff "<(echo \"$L_GOT\")" "<(echo \"$L_EXP\")"
+	bt_assert_success
+	
+	# multiple files
+	L_GOT="$(run_prep <(echo foo bar) -s 'ls #1 #2' <(echo baz zig))"
+	bt_assert_success
+	L_EXP="ls foo bar
+ls baz zig"
+	bt_diff "<(echo \"$L_GOT\")" "<(echo \"$L_EXP\")"
+	bt_assert_success
+	
 	# help examples short
 	L_GOT="$(echo 'a;b' | run_prep -F ';' -s 'ls #0 #1 #2')"
 	bt_assert_success

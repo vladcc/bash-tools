@@ -7,3 +7,6 @@ positional argument 0 is now the whole line
 2021-01-20
 prep.sh 0.91 -> prep.sh 1.0
 test finished
+
+2021-01-21
+readme.txt and fd input test added
