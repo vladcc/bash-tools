@@ -39,7 +39,7 @@ function assert
 
 function diff_
 {
-	diff "$G_TEST_RES" "$@" && rm "$G_TEST_RES"
+	diff -u "$G_TEST_RES" "$@" && rm "$G_TEST_RES"
 	assert "$G_SUCCESS"
 }
 
