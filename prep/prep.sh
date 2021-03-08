@@ -2,13 +2,13 @@
 
 # Author: Vladimir Dinev
 # vld.dinev@gmail.com
-# 2021-01-20
+# 2021-03-08
 
 set -u
 
 readonly G_SCRIPT_NAME="$(basename $0)"
 readonly G_SCRPIT_DIR="$(dirname $(realpath $0))"
-readonly G_SCRIPT_VER="1.0"
+readonly G_SCRIPT_VER="1.1"
 function print_version { echo "$G_SCRIPT_NAME $G_SCRIPT_VER"; }
 
 function print_fd2    { echo "$@" >&2; }
@@ -167,15 +167,7 @@ echo "ls a;b a b"
 echo ""
 echo "$G_OPT_POS_SPEC_S, $G_OPT_POS_SPEC_L <fmt-str>"
 echo "Change the positional argument string. Default is '#%d', i.e. a '#'"
-echo "followed by a number. Note that this limits the number of positional"
-echo "arguments to 9, since only the '#1' in '#10' will be matched and"
-echo "replaced. E.g."
-echo "$ echo a b c d e f g h i j | $G_SCRIPT_NAME $G_OPT_NUM_FIELDS_S 10 $G_OPT_STRING_S 'ls #1 #10'"
-echo "ls a a0"
-echo "If more than 9 positional arguments are needed, <fmt-str> should include"
-echo "an end delimiter, e.g. '#%d#'"
-echo "$ echo a b c d e f g h i j | $G_SCRIPT_NAME $G_OPT_NUM_FIELDS_S 10 $G_OPT_POS_SPEC_S '#%d#'  $G_OPT_STRING_S 'ls #1# #10#'"
-echo "ls a j"
+echo "followed by a number."
 echo ""
 echo "$G_OPT_SYNTAX_STR_S, $G_OPT_SYNTAX_STR_L <expected-syntax>"
 echo "Syntax clarification string. E.g."
@@ -193,11 +185,11 @@ echo "Matches the field with number <fnum> to its respective <regex>. If the"
 echo "match fails, quit with an error. Effectively, this allows for regex"
 echo "syntax checks. E.g."
 echo "$ echo a b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_CHECK_S '1~^localhost$'"
-echo "prep.sh: error: file \"-\", line 1: \"a b\": field 1 \"a\" should match \"^localhost$\", but does not"
+echo "prep.sh: error: file \"-\", line 1: \"a b\": field 1 \"a\" should match \"^localhost$\""
 echo "$ echo localhost b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_CHECK_S '1~^localhost$'"
 echo "nc localhost b"
 echo "$ echo localhost b | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_CHECK_S '1~^localhost$;2~^[0-9]+$'"
-echo "prep.sh: error: file \"-\", line 1: \"localhost b\": field 2 \"b\" should match \"^[0-9]+$\", but does not"
+echo "prep.sh: error: file \"-\", line 1: \"localhost b\": field 2 \"b\" should match \"^[0-9]+$\""
 echo "$ echo localhost 8000 | $G_SCRIPT_NAME $G_OPT_STRING_S 'nc #1 #2' $G_OPT_SYNTAX_CHECK_S '1~^localhost$;2~^[0-9]+$'"
 echo "nc localhost 8000"
 echo ""
@@ -266,7 +258,7 @@ function get_fld_syntax_err_str(fld_num,    err_str, res) {
 
 function get_rx_syntax_err_str(fld_num, fld_str, fld_rx,    res) {
 	res = get_file_pos()
-	res = sprintf("%s: field %d \"%s\" should match \"%s\", but does not",
+	res = sprintf("%s: field %d \"%s\" should match \"%s\"",
 				res, fld_num, fld_str, fld_rx)
 	return res
 }
@@ -321,7 +313,7 @@ function process_check_rx(chk_rx,    chk1, i, arr1, len1, arr2) {
 		chk1 = arr1[i]
 		
 		if (!match(chk1, CHK_RX()))
-			err_quit(sprintf("\"%s\" should match %s, but does not",
+			err_quit(sprintf("\"%s\" should match \"%s\"",
 				chk1, CHK_RX()))
 		
 		split(chk1, arr2, CHK_RX_FS())
@@ -337,7 +329,7 @@ function check_field(field, fnum,    chk_rx) {
 
 function gen_str(arr, len,    i, str, regx, fld) {
 	str = get_string_line()
-	for (i = 0; i <= len; ++i) {
+	for (i = len; i >= 0; --i) {
 		fld = arr[i]
 		
 		check_field(fld, i)

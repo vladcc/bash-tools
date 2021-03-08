@@ -57,7 +57,7 @@ Try 'prep.sh --help' for help
 	
 L_GOT="$(run_prep -s str -c 'foo' 2>&1)"
 	bt_assert_failure
-L_EXP='../prep.sh: error: "foo" should match ^[0-9]+~.+$, but does not'
+L_EXP='../prep.sh: error: "foo" should match "^[0-9]+~.+$"'
 	bt_diff "<(echo \"$L_GOT\")" "<(echo \"$L_EXP\")"
 	bt_assert_success
 }
@@ -107,7 +107,7 @@ ls baz zig"
 	
 	L_GOT="$(echo a b c d e f g h i j | run_prep -f 10 -s 'ls #1 #10')"
 	bt_assert_success
-	bt_diff "<(echo \"$L_GOT\")" "<(echo 'ls a a0')"
+	bt_diff "<(echo \"$L_GOT\")" "<(echo 'ls a j')"
 	bt_assert_success
 	
 	L_GOT="$(echo a b c d e f g h i j | run_prep -f 10 -p '#%d#' -s 'ls #1# #10#')"
@@ -129,7 +129,7 @@ ls baz zig"
 	
 	L_GOT="$(echo a b | run_prep -s 'nc #1 #2' -c '1~^localhost$' 2>&1)"
 	bt_assert_failure
-	L_EXP='../prep.sh: error: file "-", line 1: "a b": field 1 "a" should match "^localhost$", but does not'
+	L_EXP='../prep.sh: error: file "-", line 1: "a b": field 1 "a" should match "^localhost$"'
 	bt_diff "<(echo '$L_GOT')" "<(echo '$L_EXP')"
 	bt_assert_success
 	
@@ -140,7 +140,7 @@ ls baz zig"
 	
 	L_GOT="$(echo localhost b | run_prep -s 'nc #1 #2' -c '1~^localhost$;2~^[0-9]+$' 2>&1)"
 	bt_assert_failure
-	L_EXP='../prep.sh: error: file "-", line 1: "localhost b": field 2 "b" should match "^[0-9]+$", but does not'
+	L_EXP='../prep.sh: error: file "-", line 1: "localhost b": field 2 "b" should match "^[0-9]+$"'
 	bt_diff "<(echo '$L_GOT')" "<(echo '$L_EXP')"
 	bt_assert_success
 	
@@ -153,11 +153,6 @@ ls baz zig"
 	L_GOT="$(echo 'a;b' | run_prep --field-sep ';' --string 'ls #0 #1 #2')"
 	bt_assert_success
 	bt_diff "<(echo \"$L_GOT\")" "<(echo 'ls a;b a b')"
-	bt_assert_success
-	
-	L_GOT="$(echo a b c d e f g h i j | run_prep --fields 10 --string 'ls #1 #10')"
-	bt_assert_success
-	bt_diff "<(echo \"$L_GOT\")" "<(echo 'ls a a0')"
 	bt_assert_success
 	
 	L_GOT="$(echo a b c d e f g h i j | run_prep --fields 10 --pos-spec '#%d#' --string 'ls #1# #10#')"
@@ -179,7 +174,7 @@ ls baz zig"
 	
 	L_GOT="$(echo a b | run_prep --string 'nc #1 #2' --syntax-check '1~^localhost$' 2>&1)"
 	bt_assert_failure
-	L_EXP='../prep.sh: error: file "-", line 1: "a b": field 1 "a" should match "^localhost$", but does not'
+	L_EXP='../prep.sh: error: file "-", line 1: "a b": field 1 "a" should match "^localhost$"'
 	bt_diff "<(echo '$L_GOT')" "<(echo '$L_EXP')"
 	bt_assert_success
 	
@@ -190,7 +185,7 @@ ls baz zig"
 	
 	L_GOT="$(echo localhost b | run_prep --string 'nc #1 #2' --syntax-check '1~^localhost$;2~^[0-9]+$' 2>&1)"
 	bt_assert_failure
-	L_EXP='../prep.sh: error: file "-", line 1: "localhost b": field 2 "b" should match "^[0-9]+$", but does not'
+	L_EXP='../prep.sh: error: file "-", line 1: "localhost b": field 2 "b" should match "^[0-9]+$"'
 	bt_diff "<(echo '$L_GOT')" "<(echo '$L_EXP')"
 	bt_assert_success
 	
@@ -200,17 +195,17 @@ ls baz zig"
 	bt_assert_success
 	
 	# misc
-	bt_diff "<(run_prep -v)" "<(echo 'prep.sh 1.0')"
+	bt_diff "<(run_prep -v)" "<(echo 'prep.sh 1.1')"
 	bt_assert_success
-	bt_diff "<(run_prep --version)" "<(echo 'prep.sh 1.0')"
+	bt_diff "<(run_prep --version)" "<(echo 'prep.sh 1.1')"
 	bt_assert_success
 	bt_diff "<(run_prep -s foo -d | wc -l)" "<(echo 109)"
 	bt_assert_success
 	bt_diff "<(run_prep -s foo --dry-run | wc -l)" "<(echo 109)"
 	bt_assert_success
-	bt_diff "<(run_prep -h | wc -l)" "<(echo 58)"
+	bt_diff "<(run_prep -h | wc -l)" "<(echo 50)"
 	bt_assert_success
-	bt_diff "<(run_prep --help | wc -l)" "<(echo 58)"
+	bt_diff "<(run_prep --help | wc -l)" "<(echo 50)"
 	bt_assert_success
 	
 	# non-default field num

@@ -14,15 +14,7 @@ ls a;b a b
 
 -p, --pos-spec <fmt-str>
 Change the positional argument string. Default is '#%d', i.e. a '#'
-followed by a number. Note that this limits the number of positional
-arguments to 9, since only the '#1' in '#10' will be matched and
-replaced. E.g.
-$ echo a b c d e f g h i j | prep.sh -f 10 -s 'ls #1 #10'
-ls a a0
-If more than 9 positional arguments are needed, <fmt-str> should include
-an end delimiter, e.g. '#%d#'
-$ echo a b c d e f g h i j | prep.sh -f 10 -p '#%d#'  -s 'ls #1# #10#'
-ls a j
+followed by a number.
 
 -t, --syntax-str <expected-syntax>
 Syntax clarification string. E.g.
@@ -40,11 +32,11 @@ Matches the field with number <fnum> to its respective <regex>. If the
 match fails, quit with an error. Effectively, this allows for regex
 syntax checks. E.g.
 $ echo a b | prep.sh -s 'nc #1 #2' -c '1~^localhost$'
-prep.sh: error: file "-", line 1: "a b": field 1 "a" should match "^localhost$", but does not
+prep.sh: error: file "-", line 1: "a b": field 1 "a" should match "^localhost$"
 $ echo localhost b | prep.sh -s 'nc #1 #2' -c '1~^localhost$'
 nc localhost b
 $ echo localhost b | prep.sh -s 'nc #1 #2' -c '1~^localhost$;2~^[0-9]+$'
-prep.sh: error: file "-", line 1: "localhost b": field 2 "b" should match "^[0-9]+$", but does not
+prep.sh: error: file "-", line 1: "localhost b": field 2 "b" should match "^[0-9]+$"
 $ echo localhost 8000 | prep.sh -s 'nc #1 #2' -c '1~^localhost$;2~^[0-9]+$'
 nc localhost 8000
 

@@ -10,3 +10,8 @@ test finished
 
 2021-01-21
 readme.txt and fd input test added
+
+2021-03-08
+prep.sh 1.0 -> prep.sh 1.1
+default 0 to 9 positional arguments limitation eliminated by expanding backwards
+e.g. now '#10' expands before '#1', so the result is <arg_10>, and not <arg_1>0
