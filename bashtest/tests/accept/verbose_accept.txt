@@ -2,3 +2,7 @@ true
 [ 0 -eq 0 ]
 false
 [ 1 -ne 0 ]
+true
+[ 0 -eq 0 ]
+false
+[ 1 -ne 0 ]

@@ -2,9 +2,9 @@
 
 # Author: Vladimir Dinev
 # vld.dinev@gmail.com
-# 2021-01-17
+# 2021-05-24
 
-# Version 1.0
+# Version 1.1
 
 set -u
 
@@ -31,6 +31,8 @@ function bt_error_exit_st { bt_error_print "$@"; bt_exit_failure_strace; }
 
 function bt_set_verbose { G_BT_VERBOSE=1; }
 function bt_eval { [ "$G_BT_VERBOSE" -ne 1 ] || echo "$@"; eval "$@"; }
+function bt_eval_ok { bt_eval "$@"; bt_assert_success; }
+function bt_eval_nok { bt_eval "$@"; bt_assert_failure; }
 function bt_stack_trace
 {
 	local L_FRAME=0;

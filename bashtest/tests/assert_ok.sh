@@ -19,8 +19,12 @@ function test_assert
 {
 	bt_eval true
 	bt_assert_success
+
 	bt_eval false
 	bt_assert_failure
+
+	bt_eval_ok true
+	bt_eval_nok false
 }
 
 main "$@"
